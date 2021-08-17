@@ -154,7 +154,7 @@ open class SwiftyCamViewController: UIViewController {
 
 	/// Set whether SwiftyCam should allow background audio from other applications
 
-	public var allowBackgroundAudio              = true
+//	public var allowBackgroundAudio              = true
 
 	/// Sets whether a double tap to switch cameras is supported
 
@@ -398,11 +398,12 @@ open class SwiftyCamViewController: UIViewController {
 
     /// ViewWillAppear(_ animated:) Implementation
 
-    open override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStartRunning), name: .AVCaptureSessionDidStartRunning, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStopRunning),  name: .AVCaptureSessionDidStopRunning,  object: nil)
-    }
+  open override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStartRunning), name: .AVCaptureSessionDidStartRunning, object: nil)
+    NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStopRunning),  name: .AVCaptureSessionDidStopRunning,  object: nil)
+    NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidFailToStartRunning),  name: .AVCaptureSessionRuntimeError,  object: nil)
+  }
 
 	// MARK: ViewDidAppear
 
@@ -418,7 +419,7 @@ open class SwiftyCamViewController: UIViewController {
 
 		// Set background audio preference
 
-		setBackgroundAudioPreference()
+//		setBackgroundAudioPreference()
 
 		sessionQueue.async {
 			switch self.setupResult {
@@ -873,16 +874,13 @@ open class SwiftyCamViewController: UIViewController {
 			let message = NSLocalizedString("AVCam doesn't have permission to use the camera, please change privacy settings", comment: "Alert message when the user has denied access to the camera")
 			let alertController = UIAlertController(title: "AVCam", message: message, preferredStyle: .alert)
 			alertController.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Alert OK button"), style: .cancel, handler: nil))
-			alertController.addAction(UIAlertAction(title: NSLocalizedString("Settings", comment: "Alert button to open Settings"), style: .default, handler: { action in
-				if #available(iOS 10.0, *) {
-					UIApplication.shared.openURL(URL(string: UIApplication.openSettingsURLString)!)
-				} else {
-					if let appSettings = URL(string: UIApplication.openSettingsURLString) {
-						UIApplication.shared.openURL(appSettings)
-					}
-				}
-			}))
-			self.present(alertController, animated: true, completion: nil)
+      alertController.addAction(UIAlertAction(title: NSLocalizedString("Settings", comment: "Alert button to open Settings"), style: .default, handler: { action in
+        let url = URL(string: UIApplication.openSettingsURLString)
+        if let url = url, UIApplication.shared.canOpenURL(url) {
+          UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
+      }))
+      self.present(alertController, animated: true, completion: nil)
 		})
 	}
 
@@ -918,28 +916,11 @@ open class SwiftyCamViewController: UIViewController {
 
 	/// Get Devices
 
-	fileprivate class func deviceWithMediaType(_ mediaType: String, preferringPosition position: AVCaptureDevice.Position) -> AVCaptureDevice? {
-		if #available(iOS 10.0, *) {
-				let avDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInWideAngleCamera, for: AVMediaType(rawValue: mediaType), position: position)
-				return avDevice
-		} else {
-				// Fallback on earlier versions
-				let avDevice = AVCaptureDevice.devices(for: AVMediaType(rawValue: mediaType))
-				var avDeviceNum = 0
-				for device in avDevice {
-						print("deviceWithMediaType Position: \(device.position.rawValue)")
-						if device.position == position {
-								break
-						} else {
-								avDeviceNum += 1
-						}
-				}
-
-				return avDevice[avDeviceNum]
-		}
-
-		//return AVCaptureDevice.devices(for: AVMediaType(rawValue: mediaType), position: position).first
-	}
+  fileprivate class func deviceWithMediaType(_ mediaType: String, preferringPosition position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+    let avDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInWideAngleCamera, for: AVMediaType(rawValue: mediaType), position: position)
+    return avDevice
+    //return AVCaptureDevice.devices(for: AVMediaType(rawValue: mediaType), position: position).first
+  }
 
 	/// Enable or disable flash for photo
 
@@ -1002,32 +983,21 @@ fileprivate func changeFlashSettings(device: AVCaptureDevice, mode: FlashMode) {
 
 	/// Sets whether SwiftyCam should enable background audio from other applications or sources
 
-	fileprivate func setBackgroundAudioPreference() {
-		guard allowBackgroundAudio == true else {
-			return
-		}
+  fileprivate func setBackgroundAudioPreference() {
+//    guard audioEnabled, allowBackgroundAudio else {
+//      return
+//    }
 
-        guard audioEnabled == true else {
-            return
-        }
-
-		do{
-            if #available(iOS 10.0, *) {
-                try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .allowBluetooth, .allowAirPlay, .allowBluetoothA2DP])
-            } else {
-                let options: [AVAudioSession.CategoryOptions] = [.mixWithOthers, .allowBluetooth]
-                              let category = AVAudioSession.Category.playAndRecord
-                let selector = NSSelectorFromString("setCategory:withOptions:error:")
-                AVAudioSession.sharedInstance().perform(selector, with: category, with: options)
-            }
-            try AVAudioSession.sharedInstance().setActive(true)
-			session.automaticallyConfiguresApplicationAudioSession = false
-		}
-		catch {
-			print("[SwiftyCam]: Failed to set background audio preference")
-
-		}
-	}
+//    do {
+//      try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .allowBluetooth, .allowAirPlay, .allowBluetoothA2DP])
+//      try AVAudioSession.sharedInstance().setActive(true)
+//      session.automaticallyConfiguresApplicationAudioSession = false
+//    }
+//    catch {
+//      print("[SwiftyCam]: Failed to set background audio preference")
+//
+//    }
+  }
 
     /// Called when Notification Center registers session starts running
 
@@ -1037,6 +1007,10 @@ fileprivate func changeFlashSettings(device: AVCaptureDevice, mode: FlashMode) {
             self.cameraDelegate?.swiftyCamSessionDidStartRunning(self)
         }
     }
+
+  @objc private func captureSessionDidFailToStartRunning(notification: Notification) {
+
+  }
 
     /// Called when Notification Center registers session stops running
 

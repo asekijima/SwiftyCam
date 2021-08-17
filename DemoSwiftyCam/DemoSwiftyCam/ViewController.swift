@@ -58,6 +58,7 @@ class ViewController: SwiftyCamViewController, SwiftyCamViewControllerDelegate {
 
 	func swiftyCam(_ swiftyCam: SwiftyCamViewController, didTake photo: UIImage) {
 		let newVC = PhotoViewController(image: photo)
+    newVC.modalPresentationStyle = .overFullScreen
 		self.present(newVC, animated: true, completion: nil)
 	}
 
@@ -75,6 +76,7 @@ class ViewController: SwiftyCamViewController, SwiftyCamViewControllerDelegate {
 
 	func swiftyCam(_ swiftyCam: SwiftyCamViewController, didFinishProcessVideoAt url: URL) {
 		let newVC = VideoViewController(videoURL: url)
+    newVC.modalPresentationStyle = .overFullScreen
 		self.present(newVC, animated: true, completion: nil)
 	}
 
