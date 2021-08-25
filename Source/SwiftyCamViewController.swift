@@ -21,7 +21,7 @@ import AVFoundation
 
 /// A UIViewController Camera View Subclass
 
-open class SwiftyCamViewController: UIViewController {
+open class SwiftyCamViewController: UIViewController, SwiftyCamButtonDelegate {
 
 	// MARK: Enumeration Declaration
 
@@ -1019,40 +1019,37 @@ fileprivate func changeFlashSettings(device: AVCaptureDevice, mode: FlashMode) {
             self.cameraDelegate?.swiftyCamSessionDidStopRunning(self)
         }
     }
-}
 
-extension SwiftyCamViewController : SwiftyCamButtonDelegate {
+    /// Sets the maximum duration of the SwiftyCamButton
 
-	/// Sets the maximum duration of the SwiftyCamButton
+    @objc open func setMaxiumVideoDuration() -> Double {
+        return maximumVideoDuration
+    }
 
-	@objc public func setMaxiumVideoDuration() -> Double {
-		return maximumVideoDuration
-	}
+    /// Set UITapGesture to take photo
 
-	/// Set UITapGesture to take photo
+    @objc open func buttonWasTapped() {
+        takePhoto()
+    }
 
-	@objc public func buttonWasTapped() {
-		takePhoto()
-	}
+    /// Set UILongPressGesture start to begin video
 
-	/// Set UILongPressGesture start to begin video
+    @objc open func buttonDidBeginLongPress() {
+        startVideoRecording()
+    }
 
-	@objc public func buttonDidBeginLongPress() {
-		startVideoRecording()
-	}
-
-	/// Set UILongPressGesture begin to begin end video
+    /// Set UILongPressGesture begin to begin end video
 
 
-	@objc public func buttonDidEndLongPress() {
-		stopVideoRecording()
-	}
+    @objc open func buttonDidEndLongPress() {
+        stopVideoRecording()
+    }
 
-	/// Called if maximum duration is reached
+    /// Called if maximum duration is reached
 
-	@objc public func longPressDidReachMaximumDuration() {
-		stopVideoRecording()
-	}
+    @objc open func longPressDidReachMaximumDuration() {
+        stopVideoRecording()
+    }
 }
 
 // MARK: AVCaptureFileOutputRecordingDelegate
