@@ -418,7 +418,6 @@ open class SwiftyCamViewController: UIViewController {
 		}
 
 		// Set background audio preference
-
 //		setBackgroundAudioPreference()
 
 		sessionQueue.async {
@@ -810,7 +809,7 @@ open class SwiftyCamViewController: UIViewController {
 		let photoFileOutput = AVCaptureStillImageOutput()
 
 		if self.session.canAddOutput(photoFileOutput) {
-			photoFileOutput.outputSettings  = [AVVideoCodecKey: AVVideoCodecJPEG]
+      photoFileOutput.outputSettings  = [AVVideoCodecKey: AVVideoCodecType.jpeg]
 			self.session.addOutput(photoFileOutput)
 			self.photoFileOutput = photoFileOutput
 		}
@@ -1026,32 +1025,32 @@ extension SwiftyCamViewController : SwiftyCamButtonDelegate {
 
 	/// Sets the maximum duration of the SwiftyCamButton
 
-	public func setMaxiumVideoDuration() -> Double {
+	@objc public func setMaxiumVideoDuration() -> Double {
 		return maximumVideoDuration
 	}
 
 	/// Set UITapGesture to take photo
 
-	public func buttonWasTapped() {
+	@objc public func buttonWasTapped() {
 		takePhoto()
 	}
 
 	/// Set UILongPressGesture start to begin video
 
-	public func buttonDidBeginLongPress() {
+	@objc public func buttonDidBeginLongPress() {
 		startVideoRecording()
 	}
 
 	/// Set UILongPressGesture begin to begin end video
 
 
-	public func buttonDidEndLongPress() {
+	@objc public func buttonDidEndLongPress() {
 		stopVideoRecording()
 	}
 
 	/// Called if maximum duration is reached
 
-	public func longPressDidReachMaximumDuration() {
+	@objc public func longPressDidReachMaximumDuration() {
 		stopVideoRecording()
 	}
 }
