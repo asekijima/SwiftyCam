@@ -18,29 +18,31 @@ import UIKit
 
 //MARK: Public Protocol Declaration
 
+public enum SwiftyCamButtonStyle {
+    case tapPhotoLongVideo
+    case tapPhoto
+    case longVideo
+    case tapVideo
+
+    var supportsLongVideo: Bool {
+        switch self {
+        case .tapPhotoLongVideo, .longVideo:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 /// Delegate for SwiftyCamButton
 
-public protocol SwiftyCamButtonDelegate: class {
-    
-    /// Called when UITapGestureRecognizer begins
-    
-    func buttonWasTapped()
-    
-    /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.began
-    
-    func buttonDidBeginLongPress()
-    
-    /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.end
-
-    func buttonDidEndLongPress()
-    
-    /// Called when the maximum duration is reached
-    
-    func longPressDidReachMaximumDuration()
-    
+public protocol SwiftyCamButtonDelegate: AnyObject {
     /// Sets the maximum duration of the video recording
-    
     func setMaxiumVideoDuration() -> Double
+
+    func shouldTakePhoto()
+    func shouldStartVideoRecording()
+    func shouldStopVideoRecording()
 }
 
 // MARK: Public View Declaration
@@ -57,6 +59,8 @@ open class SwiftyCamButton: UIButton {
     // Sets whether button is enabled
     
     public var buttonEnabled = true
+
+    public var buttonStyle: SwiftyCamButtonStyle = .tapPhotoLongVideo
     
     /// Maximum duration variable
     
@@ -83,23 +87,31 @@ open class SwiftyCamButton: UIButton {
         guard buttonEnabled == true else {
             return
         }
-        
-       delegate?.buttonWasTapped()
+
+        switch buttonStyle {
+        case .tapPhoto, .tapPhotoLongVideo:
+            delegate?.shouldTakePhoto()
+        case .tapVideo:
+            delegate?.shouldStartVideoRecording()
+            startTimer()
+        default:
+            break
+        }
     }
     
     /// UILongPressGestureRecognizer Function
     @objc fileprivate func LongPress(_ sender:UILongPressGestureRecognizer!)  {
-        guard buttonEnabled == true else {
+        guard buttonEnabled == true, buttonStyle.supportsLongVideo else {
             return
         }
         
         switch sender.state {
         case .began:
-            delegate?.buttonDidBeginLongPress()
+            delegate?.shouldStartVideoRecording()
             startTimer()
         case .cancelled, .ended, .failed:
             invalidateTimer()
-            delegate?.buttonDidEndLongPress()
+            delegate?.shouldStopVideoRecording()
         default:
             break
         }
@@ -109,7 +121,7 @@ open class SwiftyCamButton: UIButton {
     
     @objc fileprivate func timerFinished() {
         invalidateTimer()
-        delegate?.longPressDidReachMaximumDuration()
+        delegate?.shouldStopVideoRecording()
     }
     
     /// Start Maximum Duration Timer
