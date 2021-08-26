@@ -500,6 +500,14 @@ import AVFoundation
 		}
 	}
 
+    public func toggleVideoRecording() {
+        if isVideoRecording {
+            stopVideoRecording()
+        } else {
+            startVideoRecording()
+        }
+    }
+
 	/**
 
 	Begin recording video of current session
@@ -509,7 +517,6 @@ import AVFoundation
 	*/
 
 	public func startVideoRecording() {
-
         guard sessionRunning == true else {
             print("[SwiftyCam]: Cannot start video recoding. Capture session is not running")
             return
@@ -1031,8 +1038,8 @@ fileprivate func changeFlashSettings(device: AVCaptureDevice, mode: FlashMode) {
         takePhoto()
     }
 
-    @objc public func shouldStartVideoRecording() {
-        startVideoRecording()
+    @objc public func shouldToggleVideoRecording() {
+        toggleVideoRecording()
     }
 
     @objc public func shouldStopVideoRecording() {

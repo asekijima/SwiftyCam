@@ -41,7 +41,7 @@ public protocol SwiftyCamButtonDelegate: AnyObject {
     func setMaxiumVideoDuration() -> Double
 
     func shouldTakePhoto()
-    func shouldStartVideoRecording()
+    func shouldToggleVideoRecording()
     func shouldStopVideoRecording()
 }
 
@@ -92,8 +92,8 @@ open class SwiftyCamButton: UIButton {
         case .tapPhoto, .tapPhotoLongVideo:
             delegate?.shouldTakePhoto()
         case .tapVideo:
-            delegate?.shouldStartVideoRecording()
-            startTimer()
+            delegate?.shouldToggleVideoRecording()
+            handleTimer()
         default:
             break
         }
@@ -107,7 +107,7 @@ open class SwiftyCamButton: UIButton {
         
         switch sender.state {
         case .began:
-            delegate?.shouldStartVideoRecording()
+            delegate?.shouldToggleVideoRecording()
             startTimer()
         case .cancelled, .ended, .failed:
             invalidateTimer()
@@ -122,6 +122,14 @@ open class SwiftyCamButton: UIButton {
     @objc fileprivate func timerFinished() {
         invalidateTimer()
         delegate?.shouldStopVideoRecording()
+    }
+
+    private func handleTimer() {
+        if timer != nil {
+            invalidateTimer()
+        } else {
+            startTimer()
+        }
     }
     
     /// Start Maximum Duration Timer
