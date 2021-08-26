@@ -187,6 +187,8 @@ import AVFoundation
     /// Specifies the [videoGravity](https://developer.apple.com/reference/avfoundation/avcapturevideopreviewlayer/1386708-videogravity) for the preview layer.
     public var videoGravity                   : SwiftyCamVideoGravity = .resizeAspect
 
+    public var pinVideoToWindow               = false
+
     /// Sets whether or not video recordings will record audio
     /// Setting to true will prompt user for access to microphone on View Controller launch.
     public var audioEnabled                   = true
@@ -289,6 +291,8 @@ import AVFoundation
 
 	/// Disable view autorotation for forced portrait recorindg
 
+    private var firstAppear = true
+
 	override open var shouldAutorotate: Bool {
 		return allowAutoRotate
 	}
@@ -301,46 +305,6 @@ import AVFoundation
 
 	/// ViewDidLoad Implementation
 
-	override open func viewDidLoad() {
-		super.viewDidLoad()
-        previewLayer = PreviewView(frame: view.frame, videoGravity: videoGravity)
-        previewLayer.center = view.center
-        view.addSubview(previewLayer)
-        view.sendSubviewToBack(previewLayer)
-
-		// Add Gesture Recognizers
-
-        addGestureRecognizers()
-
-		previewLayer.session = session
-
-		// Test authorization status for Camera and Micophone
-
-		switch AVCaptureDevice.authorizationStatus(for: AVMediaType.video) {
-		case .authorized:
-
-			// already authorized
-			break
-		case .notDetermined:
-
-			// not yet determined
-			sessionQueue.suspend()
-			AVCaptureDevice.requestAccess(for: AVMediaType.video, completionHandler: { [unowned self] granted in
-				if !granted {
-					self.setupResult = .notAuthorized
-				}
-				self.sessionQueue.resume()
-			})
-		default:
-
-			// already been asked. Denied access
-			setupResult = .notAuthorized
-		}
-		sessionQueue.async { [unowned self] in
-			self.configureSession()
-		}
-	}
-
     // MARK: ViewDidLayoutSubviews
 
     /// ViewDidLayoutSubviews() Implementation
@@ -352,7 +316,7 @@ import AVFoundation
             layer.videoOrientation = .portrait
         }
         
-        previewLayer.frame = self.view.bounds
+        previewLayer.frame = pinVideoToWindow ? UIScreen.main.bounds : view.bounds
 
     }
 
@@ -400,10 +364,57 @@ import AVFoundation
 
   open override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
+
+    if firstAppear {
+        firstAppear = false
+        setupVideo()
+    }
+
+
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStartRunning), name: .AVCaptureSessionDidStartRunning, object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStopRunning),  name: .AVCaptureSessionDidStopRunning,  object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidFailToStartRunning),  name: .AVCaptureSessionRuntimeError,  object: nil)
   }
+
+    private func setupVideo() {
+        let bounds = pinVideoToWindow ? UIScreen.main.bounds : view.bounds
+        previewLayer = PreviewView(frame: bounds, videoGravity: videoGravity)
+        previewLayer.center = view.center
+        view.addSubview(previewLayer)
+        view.sendSubviewToBack(previewLayer)
+
+        // Add Gesture Recognizers
+
+        addGestureRecognizers()
+
+        previewLayer.session = session
+
+        // Test authorization status for Camera and Micophone
+
+        switch AVCaptureDevice.authorizationStatus(for: AVMediaType.video) {
+        case .authorized:
+
+            // already authorized
+            break
+        case .notDetermined:
+
+            // not yet determined
+            sessionQueue.suspend()
+            AVCaptureDevice.requestAccess(for: AVMediaType.video, completionHandler: { [unowned self] granted in
+                if !granted {
+                    self.setupResult = .notAuthorized
+                }
+                self.sessionQueue.resume()
+            })
+        default:
+
+            // already been asked. Denied access
+            setupResult = .notAuthorized
+        }
+        sessionQueue.async { [unowned self] in
+            self.configureSession()
+        }
+    }
 
 	// MARK: ViewDidAppear
 
