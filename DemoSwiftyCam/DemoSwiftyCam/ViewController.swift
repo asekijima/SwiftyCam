@@ -34,6 +34,7 @@ class ViewController: SwiftyCamViewController, SwiftyCamViewControllerDelegate {
         flashMode = .auto
         flashButton.setImage(#imageLiteral(resourceName: "flashauto"), for: UIControl.State())
         captureButton.buttonEnabled = false
+        captureButton.buttonStyle = .tapVideoLongVideo
 	}
 
 	override var prefersStatusBarHidden: Bool {

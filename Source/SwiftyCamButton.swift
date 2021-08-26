@@ -20,13 +20,14 @@ import UIKit
 
 public enum SwiftyCamButtonStyle {
     case tapPhotoLongVideo
+    case tapVideoLongVideo
     case tapPhoto
     case longVideo
     case tapVideo
 
     var supportsLongVideo: Bool {
         switch self {
-        case .tapPhotoLongVideo, .longVideo:
+        case .tapPhotoLongVideo, .longVideo, .tapVideoLongVideo:
             return true
         default:
             return false
@@ -91,7 +92,7 @@ open class SwiftyCamButton: UIButton {
         switch buttonStyle {
         case .tapPhoto, .tapPhotoLongVideo:
             delegate?.shouldTakePhoto()
-        case .tapVideo:
+        case .tapVideo, .tapVideoLongVideo:
             delegate?.shouldToggleVideoRecording()
             handleTimer()
         default:
