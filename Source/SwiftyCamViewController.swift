@@ -364,17 +364,56 @@ import AVFoundation
 
   open override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
-
     if firstAppear {
         firstAppear = false
-        setupVideo()
+        // make changes here for when screen will appear for the first time
     }
-
-
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStartRunning), name: .AVCaptureSessionDidStartRunning, object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStopRunning),  name: .AVCaptureSessionDidStopRunning,  object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidFailToStartRunning),  name: .AVCaptureSessionRuntimeError,  object: nil)
   }
+
+	// MARK: ViewDidAppear
+
+	/// ViewDidAppear(_ animated:) Implementation
+	override open func viewDidAppear(_ animated: Bool) {
+		super.viewDidAppear(animated)
+        setupVideo()
+		// Subscribe to device rotation notifications
+
+		if shouldUseDeviceOrientation {
+			orientation.start()
+		}
+
+		// Set background audio preference
+//		setBackgroundAudioPreference()
+
+		sessionQueue.async {
+			switch self.setupResult {
+			case .success:
+				// Begin Session
+				self.session.startRunning()
+				self.isSessionRunning = self.session.isRunning
+
+                // Preview layer video orientation can be set only after the connection is created
+                DispatchQueue.main.async {
+                    self.previewLayer.videoPreviewLayer.connection?.videoOrientation = self.orientation.getPreviewLayerOrientation()
+                }
+
+			case .notAuthorized:
+                if self.shouldPrompToAppSettings == true {
+                    self.promptToAppSettings()
+                } else {
+                    self.cameraDelegate?.swiftyCamNotAuthorized(self)
+                }
+			case .configurationFailed:
+				// Unknown Error
+                DispatchQueue.main.async {
+                    self.cameraDelegate?.swiftyCamDidFailToConfigure(self)
+                }
+			}
+		}
+	}
 
     private func setupVideo() {
         let bounds = pinVideoToWindow ? UIScreen.main.bounds : view.bounds
@@ -415,48 +454,6 @@ import AVFoundation
             self.configureSession()
         }
     }
-
-	// MARK: ViewDidAppear
-
-	/// ViewDidAppear(_ animated:) Implementation
-	override open func viewDidAppear(_ animated: Bool) {
-		super.viewDidAppear(animated)
-
-		// Subscribe to device rotation notifications
-
-		if shouldUseDeviceOrientation {
-			orientation.start()
-		}
-
-		// Set background audio preference
-//		setBackgroundAudioPreference()
-
-		sessionQueue.async {
-			switch self.setupResult {
-			case .success:
-				// Begin Session
-				self.session.startRunning()
-				self.isSessionRunning = self.session.isRunning
-
-                // Preview layer video orientation can be set only after the connection is created
-                DispatchQueue.main.async {
-                    self.previewLayer.videoPreviewLayer.connection?.videoOrientation = self.orientation.getPreviewLayerOrientation()
-                }
-
-			case .notAuthorized:
-                if self.shouldPrompToAppSettings == true {
-                    self.promptToAppSettings()
-                } else {
-                    self.cameraDelegate?.swiftyCamNotAuthorized(self)
-                }
-			case .configurationFailed:
-				// Unknown Error
-                DispatchQueue.main.async {
-                    self.cameraDelegate?.swiftyCamDidFailToConfigure(self)
-                }
-			}
-		}
-	}
 
 	// MARK: ViewDidDisappear
 
