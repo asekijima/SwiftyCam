@@ -199,6 +199,10 @@ import AVFoundation
 
     /// Video will be recorded to this folder
     public var outputFolder: String           = NSTemporaryDirectory()
+
+    /// Screen will hold asking for video authorization and finish setup
+    /// MUST CALL setupVideo() manually
+    public var shouldHoldScreenSetup          = false
     
     /// Public access to Pinch Gesture
     fileprivate(set) public var pinchGesture  : UIPinchGestureRecognizer!
@@ -366,7 +370,9 @@ import AVFoundation
     super.viewWillAppear(animated)
     if firstAppear {
         firstAppear = false
-        // make changes here for when screen will appear for the first time
+        if !shouldHoldScreenSetup {
+            setupVideo()
+        }
     }
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStartRunning), name: .AVCaptureSessionDidStartRunning, object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStopRunning),  name: .AVCaptureSessionDidStopRunning,  object: nil)
@@ -378,7 +384,6 @@ import AVFoundation
 	/// ViewDidAppear(_ animated:) Implementation
 	override open func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
-        setupVideo()
 		// Subscribe to device rotation notifications
 
 		if shouldUseDeviceOrientation {
@@ -415,7 +420,7 @@ import AVFoundation
 		}
 	}
 
-    private func setupVideo() {
+    open func setupVideo() {
         let bounds = pinVideoToWindow ? UIScreen.main.bounds : view.bounds
         previewLayer = PreviewView(frame: bounds, videoGravity: videoGravity)
         previewLayer.center = view.center
