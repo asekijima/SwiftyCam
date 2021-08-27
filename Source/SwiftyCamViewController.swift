@@ -199,10 +199,6 @@ import AVFoundation
 
     /// Video will be recorded to this folder
     public var outputFolder: String           = NSTemporaryDirectory()
-
-    /// Screen will hold asking for video authorization and finish setup
-    /// MUST CALL setupVideo() manually
-    public var shouldHoldScreenSetup          = false
     
     /// Public access to Pinch Gesture
     fileprivate(set) public var pinchGesture  : UIPinchGestureRecognizer!
@@ -370,10 +366,9 @@ import AVFoundation
     super.viewWillAppear(animated)
     if firstAppear {
         firstAppear = false
-        if !shouldHoldScreenSetup {
-            setupVideo()
-        }
+        setupVideo()
     }
+
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStartRunning), name: .AVCaptureSessionDidStartRunning, object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidStopRunning),  name: .AVCaptureSessionDidStopRunning,  object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(captureSessionDidFailToStartRunning),  name: .AVCaptureSessionRuntimeError,  object: nil)
