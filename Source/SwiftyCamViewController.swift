@@ -548,7 +548,7 @@ import AVFoundation
 		}
 
         //Must be fetched before on main thread
-        let previewOrientation = previewLayer.videoPreviewLayer.connection!.videoOrientation
+        let previewOrientation = previewLayer.videoPreviewLayer.connection?.videoOrientation ?? .portrait
 
 		sessionQueue.async { [unowned self] in
 			if !movieFileOutput.isRecording {
@@ -569,7 +569,9 @@ import AVFoundation
 
 				// Start recording to a temporary file.
 				let outputFileName = UUID().uuidString
-				let outputFilePath = (self.outputFolder as NSString).appendingPathComponent((outputFileName as NSString).appendingPathExtension("mov")!)
+                guard let filename = (outputFileName as NSString).appendingPathExtension("mov") else { return }
+				let outputFilePath = (self.outputFolder as NSString).appendingPathComponent(filename)
+
 				movieFileOutput.startRecording(to: URL(fileURLWithPath: outputFilePath), recordingDelegate: self)
 				self.isVideoRecording = true
 				DispatchQueue.main.async {
@@ -592,24 +594,23 @@ import AVFoundation
 
 	*/
 
-	public func stopVideoRecording() {
-		if self.isVideoRecording == true {
-			self.isVideoRecording = false
-			movieFileOutput!.stopRecording()
-			disableFlash()
+    public func stopVideoRecording() {
+        guard isVideoRecording else { return }
+        self.isVideoRecording = false
+        movieFileOutput?.stopRecording()
+        disableFlash()
 
-			if currentCamera == .front && flashMode == .on && flashView != nil {
-				UIView.animate(withDuration: 0.1, delay: 0.0, options: .curveEaseInOut, animations: {
-					self.flashView?.alpha = 0.0
-				}, completion: { (_) in
-					self.flashView?.removeFromSuperview()
-				})
-			}
-			DispatchQueue.main.async {
-				self.cameraDelegate?.swiftyCam(self, didFinishRecordingVideo: self.currentCamera)
-			}
-		}
-	}
+        if currentCamera == .front && flashMode == .on && flashView != nil {
+            UIView.animate(withDuration: 0.1, delay: 0.0, options: .curveEaseInOut, animations: {
+                self.flashView?.alpha = 0.0
+            }, completion: { (_) in
+                self.flashView?.removeFromSuperview()
+            })
+        }
+        DispatchQueue.main.async {
+            self.cameraDelegate?.swiftyCam(self, didFinishRecordingVideo: self.currentCamera)
+        }
+    }
 
 	/**
 
@@ -621,7 +622,7 @@ import AVFoundation
 
 
 	public func switchCamera() {
-		guard isVideoRecording != true else {
+		guard !isVideoRecording else {
 			//TODO: Look into switching camera during video recording
 			print("[SwiftyCam]: Switching between cameras while recording video is not supported")
 			return
@@ -842,17 +843,16 @@ import AVFoundation
 	- Returns: UIImage from the image data, adjusted for proper orientation.
 	*/
 
-	fileprivate func processPhoto(_ imageData: Data) -> UIImage {
-		let dataProvider = CGDataProvider(data: imageData as CFData)
-		let cgImageRef = CGImage(jpegDataProviderSource: dataProvider!, decode: nil, shouldInterpolate: true, intent: CGColorRenderingIntent.defaultIntent)
+    fileprivate func processPhoto(_ imageData: Data?) -> UIImage? {
+        guard let data = imageData,
+              let dataProvider = CGDataProvider(data: data as CFData),
+              let cgImageRef = CGImage(jpegDataProviderSource: dataProvider, decode: nil, shouldInterpolate: true, intent: CGColorRenderingIntent.defaultIntent) else {  return nil }
 
-		// Set proper orientation for photo
-		// If camera is currently set to front camera, flip image
-
-		let image = UIImage(cgImage: cgImageRef!, scale: 1.0, orientation: self.orientation.getImageOrientation(forCamera: self.currentCamera))
-
-		return image
-	}
+        // Set proper orientation for photo
+        // If camera is currently set to front camera, flip image
+        let image = UIImage(cgImage: cgImageRef, scale: 1.0, orientation: orientation.getImageOrientation(forCamera: currentCamera))
+        return image
+    }
 
 	fileprivate func capturePhotoAsyncronously(completionHandler: @escaping(Bool) -> ()) {
 
@@ -862,13 +862,12 @@ import AVFoundation
         }
 
 		if let videoConnection = photoFileOutput?.connection(with: AVMediaType.video) {
-
 			photoFileOutput?.captureStillImageAsynchronously(from: videoConnection, completionHandler: {(sampleBuffer, error) in
-				if (sampleBuffer != nil) {
-					let imageData = AVCaptureStillImageOutput.jpegStillImageNSDataRepresentation(sampleBuffer!)
-					let image = self.processPhoto(imageData!)
+                if let buffer = sampleBuffer,
+                   let imageData = AVCaptureStillImageOutput.jpegStillImageNSDataRepresentation(buffer),
+                   let image = self.processPhoto(imageData) {
 
-					// Call delegate and return new image
+                    // Call delegate and return new image
 					DispatchQueue.main.async {
 						self.cameraDelegate?.swiftyCam(self, didTake: image)
 					}
@@ -977,7 +976,7 @@ fileprivate func changeFlashSettings(device: AVCaptureDevice, mode: FlashMode) {
 
 		let device = AVCaptureDevice.default(for: AVMediaType.video)
 		// Check if device has a flash
-		if (device?.hasTorch)! {
+		if device?.hasTorch == true {
 			do {
 				try device?.lockForConfiguration()
 				if (device?.torchMode == AVCaptureDevice.TorchMode.on) {
@@ -1095,25 +1094,22 @@ extension SwiftyCamViewController {
 	/// Handle pinch gesture
 
 	@objc fileprivate func zoomGesture(pinch: UIPinchGestureRecognizer) {
-		guard pinchToZoom == true && self.currentCamera == .rear else {
+		guard pinchToZoom,
+        currentCamera == .rear,
+        let captureDevice = AVCaptureDevice.devices().first else {
 			//ignore pinch
 			return
 		}
 		do {
-			let captureDevice = AVCaptureDevice.devices().first
-			try captureDevice?.lockForConfiguration()
-
-			zoomScale = min(maxZoomScale, max(1.0, min(beginZoomScale * pinch.scale,  captureDevice!.activeFormat.videoMaxZoomFactor)))
-
-			captureDevice?.videoZoomFactor = zoomScale
+			try captureDevice.lockForConfiguration()
+			zoomScale = min(maxZoomScale, max(1.0, min(beginZoomScale * pinch.scale,  captureDevice.activeFormat.videoMaxZoomFactor)))
+			captureDevice.videoZoomFactor = zoomScale
 
 			// Call Delegate function with current zoom scale
 			DispatchQueue.main.async {
 				self.cameraDelegate?.swiftyCam(self, didChangeZoomLevel: self.zoomScale)
 			}
-
-			captureDevice?.unlockForConfiguration()
-
+			captureDevice.unlockForConfiguration()
 		} catch {
 			print("[SwiftyCam]: Error locking configuration")
 		}
@@ -1122,13 +1118,13 @@ extension SwiftyCamViewController {
 	/// Handle single tap gesture
 
 	@objc fileprivate func singleTapGesture(tap: UITapGestureRecognizer) {
-		guard tapToFocus == true else {
+        guard tapToFocus, let previewLayer = previewLayer else {
 			// Ignore taps
 			return
 		}
 
-		let screenSize = previewLayer!.bounds.size
-		let tapPoint = tap.location(in: previewLayer!)
+		let screenSize = previewLayer.bounds.size
+		let tapPoint = tap.location(in: previewLayer)
 		let x = tapPoint.y / screenSize.height
 		let y = 1.0 - tapPoint.x / screenSize.width
 		let focusPoint = CGPoint(x: x, y: y)
@@ -1167,7 +1163,10 @@ extension SwiftyCamViewController {
 
     @objc private func panGesture(pan: UIPanGestureRecognizer) {
 
-        guard swipeToZoom == true && self.currentCamera == .rear else {
+        guard swipeToZoom,
+              currentCamera == .rear,
+              let captureDevice = AVCaptureDevice.devices().first
+              else {
             //ignore pan
             return
         }
@@ -1175,27 +1174,20 @@ extension SwiftyCamViewController {
         let translationDifference = currentTranslation - previousPanTranslation
 
         do {
-            let captureDevice = AVCaptureDevice.devices().first
-            try captureDevice?.lockForConfiguration()
-
-            let currentZoom = captureDevice?.videoZoomFactor ?? 0.0
-
-            if swipeToZoomInverted == true {
-                zoomScale = min(maxZoomScale, max(1.0, min(currentZoom - (translationDifference / 75),  captureDevice!.activeFormat.videoMaxZoomFactor)))
+            try captureDevice.lockForConfiguration()
+            let currentZoom = captureDevice.videoZoomFactor
+            if swipeToZoomInverted {
+                zoomScale = min(maxZoomScale, max(1.0, min(currentZoom - (translationDifference / 75),  captureDevice.activeFormat.videoMaxZoomFactor)))
             } else {
-                zoomScale = min(maxZoomScale, max(1.0, min(currentZoom + (translationDifference / 75),  captureDevice!.activeFormat.videoMaxZoomFactor)))
-
+                zoomScale = min(maxZoomScale, max(1.0, min(currentZoom + (translationDifference / 75),  captureDevice.activeFormat.videoMaxZoomFactor)))
             }
-
-            captureDevice?.videoZoomFactor = zoomScale
+            captureDevice.videoZoomFactor = zoomScale
 
             // Call Delegate function with current zoom scale
             DispatchQueue.main.async {
                 self.cameraDelegate?.swiftyCam(self, didChangeZoomLevel: self.zoomScale)
             }
-
-            captureDevice?.unlockForConfiguration()
-
+            captureDevice.unlockForConfiguration()
         } catch {
             print("[SwiftyCam]: Error locking configuration")
         }
