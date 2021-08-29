@@ -851,6 +851,22 @@ import AVFoundation
         return image
     }
 
+    private func saveImage(imageName: String = UUID().uuidString, image: UIImage) -> URL? {
+        let fileName = imageName
+        let fileURLString = (self.outputFolder as NSString).appendingPathComponent(fileName)
+        let fileURL = URL(fileURLWithPath: fileURLString)
+        guard let data = image.jpegData(compressionQuality: 1) else { return nil }
+
+        do {
+            try data.write(to: fileURL)
+            return fileURL
+        } catch let error {
+            print("error saving file with error", error)
+            return nil
+        }
+
+    }
+
 	fileprivate func capturePhotoAsyncronously(completionHandler: @escaping(Bool) -> ()) {
 
         guard sessionRunning == true else {
@@ -863,10 +879,10 @@ import AVFoundation
                 if let buffer = sampleBuffer,
                    let imageData = AVCaptureStillImageOutput.jpegStillImageNSDataRepresentation(buffer),
                    let image = self.processPhoto(imageData) {
-
+                    let url = self.saveImage(image: image)
                     // Call delegate and return new image
 					DispatchQueue.main.async {
-						self.cameraDelegate?.swiftyCam(self, didTake: image)
+                        self.cameraDelegate?.swiftyCam(self, didTake: image, on: url)
 					}
 					completionHandler(true)
 				} else {

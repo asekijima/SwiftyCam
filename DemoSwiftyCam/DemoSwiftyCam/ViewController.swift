@@ -34,7 +34,7 @@ class ViewController: SwiftyCamViewController, SwiftyCamViewControllerDelegate {
         flashMode = .auto
         flashButton.setImage(#imageLiteral(resourceName: "flashauto"), for: UIControl.State())
         captureButton.buttonEnabled = false
-        captureButton.buttonStyle = .tapVideoLongVideo
+        captureButton.buttonStyle = .tapPhotoLongVideo
 	}
 
 	override var prefersStatusBarHidden: Bool {
@@ -57,7 +57,8 @@ class ViewController: SwiftyCamViewController, SwiftyCamViewControllerDelegate {
     }
     
 
-	func swiftyCam(_ swiftyCam: SwiftyCamViewController, didTake photo: UIImage) {
+    func swiftyCam(_ swiftyCam: SwiftyCamViewController, didTake photo: UIImage, on url: URL?) {
+        print("++++ URL: \(url)")
 		let newVC = PhotoViewController(image: photo)
     newVC.modalPresentationStyle = .overFullScreen
 		self.present(newVC, animated: true, completion: nil)
